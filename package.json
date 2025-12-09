@@ -1,6 +1,5 @@
 {
   "name": "my-journal",
-  "homepage": "https://username.github.io/project-zero",
   "private": true,
   "version": "0.0.0",
   "type": "module",
