@@ -2,12 +2,14 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import { Loader2 } from 'lucide-react';
-import UserProfile from './pages/UserProfile';
+import { Toaster } from 'react-hot-toast'; // استيراد التنبيهات
 
 // استيراد الصفحات
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
-import Feed from './pages/Feed'; // استيراد الصفحة الجديدة
+import Feed from './pages/Feed';
+import UserProfile from './pages/UserProfile';
+import Notifications from './pages/Notifications'; // استيراد الصفحة الجديدة
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -30,37 +32,33 @@ const ProtectedRoute = ({ children }) => {
 export default function App() {
   return (
     <Router>
+      {/* إعدادات شكل التنبيهات */}
+      <Toaster 
+        position="bottom-right"
+        toastOptions={{
+          style: {
+            background: '#1f2937',
+            color: '#fff',
+            border: '1px solid #374151',
+          },
+          success: {
+            iconTheme: {
+              primary: '#10b981',
+              secondary: '#fff',
+            },
+          },
+        }}
+      />
+      
       <Routes>
         <Route path="/login" element={<Login />} />
 
-        {/* الصفحة الرئيسية (الداشبورد / البروفايل) */}
-        <Route 
-          path="/" 
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          } 
-        />
-
-        {/* صفحة المجتمع (Feed) */}
-        <Route 
-          path="/feed" 
-          element={
-            <ProtectedRoute>
-              <Feed />
-            </ProtectedRoute>
-          } 
-        />
-        {/* صفحة بروفايل أي مستخدم */}
-<Route 
-  path="/profile/:uid" 
-  element={
-    <ProtectedRoute>
-      <UserProfile />
-    </ProtectedRoute>
-  } 
-/>
+        <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/feed" element={<ProtectedRoute><Feed /></ProtectedRoute>} />
+        <Route path="/profile/:uid" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
+        
+        {/* المسار الجديد */}
+        <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

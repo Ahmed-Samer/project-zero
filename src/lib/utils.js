@@ -25,7 +25,7 @@ const getValidDate = (dateObj) => {
 
 export const formatTime = (dateObj) => {
   const d = getValidDate(dateObj);
-  if (!d) return '--:--'; // لو التاريخ بايظ رجع شرطة بدل ما الموقع يقع
+  if (!d) return '--:--';
   
   return new Intl.DateTimeFormat('en-US', { 
     hour: '2-digit', 
@@ -60,8 +60,7 @@ export const getDayNumber = (startDate, currentDate) => {
   return diffDays > 0 ? diffDays : 1;
 };
 
-// ضغط الصور
-// --- ضغط وتحويل الصورة (نسخة محسنة للحجم) ---
+// --- ضغط وتحويل الصورة (نسخة HD) ---
 export const compressImage = (file) => {
   return new Promise((resolve) => {
     const reader = new FileReader();
@@ -72,22 +71,19 @@ export const compressImage = (file) => {
       img.onload = () => {
         const canvas = document.createElement('canvas');
         
-        // قللنا العرض الأقصى لـ 500 بكسل (كفاية جداً للموبايل والويب)
-        const MAX_WIDTH = 500;
+        // عدلنا العرض لـ 1280 بكسل (جودة HD ممتازة للويب)
+        const MAX_WIDTH = 1280;
         const scaleSize = MAX_WIDTH / img.width;
         
-        // لو الصورة أصغر من 500 سيبها زي ما هي، لو أكبر صغرها
         canvas.width = img.width > MAX_WIDTH ? MAX_WIDTH : img.width;
         canvas.height = img.width > MAX_WIDTH ? (img.height * scaleSize) : img.height;
 
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         
-        // ضغط الجودة لـ 0.5 (50%) عشان الحجم يقل جداً
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.5);
+        // عدلنا الجودة لـ 0.85 (85%) عشان الصورة تكون واضحة جداً ومش مبكسلة
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
         
-        // تأكدنا إن الكود سليم
-        console.log("Image compressed size approx:", Math.round(dataUrl.length / 1024), "KB");
         resolve(dataUrl);
       };
     };

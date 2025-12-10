@@ -2,20 +2,30 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { formatDateFull } from '../lib/utils';
+import { useAuth } from '../hooks/useAuth'; // عشان نعرف مين اللي فاتح
+import { useJournal } from '../hooks/useJournal'; // عشان دالة النشر
+import { formatDateFull, getDayNumber } from '../lib/utils';
 import EntryCard from '../components/EntryCard';
 import YearGrid from '../components/YearGrid';
 import Sidebar from '../components/Sidebar';
 import RightSidebar from '../components/RightSidebar';
-import { Loader2, Layers, User, Activity, Menu, Calendar } from 'lucide-react';
+import MobileNav from '../components/MobileNav'; // استيراد الشريط السفلي
+import EditorModal from '../components/EditorModal'; // استيراد المودال
+import { Loader2, Layers, User, Activity, Calendar } from 'lucide-react';
+
+const PROJECT_START_DATE = new Date();
 
 export default function UserProfile() {
   const { uid } = useParams();
+  const { user } = useAuth(); // المستخدم الحالي (اللي فاتح الموقع)
   
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [profileData, setProfileData] = useState(null);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
+  // States للنشر
+  const { addEntry } = useJournal(user);
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -29,7 +39,6 @@ export default function UserProfile() {
         const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         setEntries(data);
         
-        // محاولة جلب بيانات المستخدم من البوستات لو مش معانا (مؤقتاً)
         if (data.length > 0) {
           setProfileData({
             name: data[0].authorName,
@@ -44,6 +53,12 @@ export default function UserProfile() {
     };
     if (uid) fetchUserData();
   }, [uid]);
+
+  const handleSave = async (data) => {
+    const now = new Date();
+    const currentDayNum = getDayNumber(PROJECT_START_DATE, now);
+    await addEntry(data.content, now, currentDayNum, data.quote, data.image);
+  };
 
   const scrollToDay = (dayNum) => {
     const element = document.getElementById(`day-${dayNum}`);
@@ -67,25 +82,21 @@ export default function UserProfile() {
   const sortedDays = Object.keys(groupedEntries).sort((a, b) => b - a);
 
   return (
-    <div className="min-h-screen bg-[#0b0f19] text-[#e7e9ea] font-sans">
+    <div className="min-h-screen bg-[#0b0f19] text-[#e7e9ea] font-sans pb-20 lg:pb-0">
       
-      {/* Mobile Header */}
-      <div className="lg:hidden fixed top-0 w-full bg-[#0b0f19]/90 backdrop-blur-md border-b border-[#1f2937] z-50 px-4 h-16 flex items-center justify-between">
+      {/* Mobile Top Header */}
+      <div className="lg:hidden fixed top-0 w-full bg-[#0b0f19]/90 backdrop-blur-md border-b border-[#1f2937] z-40 px-4 h-14 flex items-center justify-center">
         <span className="font-bold text-lg tracking-tight">PROJECT <span className="text-indigo-500">ZERO</span></span>
-        <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="p-2 text-[#e7e9ea]"><Menu size={24} /></button>
       </div>
 
-      {/* --- 1. LEFT SIDEBAR --- */}
-      <Sidebar mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
+      <Sidebar />
 
-      {/* --- LAYOUT WRAPPER --- */}
       <div className="lg:ml-64 flex justify-center min-h-screen">
         
-        {/* --- 2. MAIN PROFILE CONTENT (MIDDLE) --- */}
-        <main className="flex-1 max-w-[700px] border-r border-[#1f2937] min-h-screen pt-16 lg:pt-0">
+        <main className="flex-1 max-w-[700px] border-r border-[#1f2937] min-h-screen pt-14 lg:pt-0">
           
           {/* Profile Header Area */}
-          <div className="px-6 py-8 border-b border-[#1f2937] bg-[#0b0f19]/95 sticky top-0 z-30 backdrop-blur-sm">
+          <div className="px-4 lg:px-6 py-6 lg:py-8 border-b border-[#1f2937] bg-[#0b0f19]/95 sticky top-14 lg:top-0 z-30 backdrop-blur-sm">
             
             <div className="flex flex-col md:flex-row items-center md:items-start gap-6 mb-8">
                {/* Profile Image */}
@@ -99,10 +110,9 @@ export default function UserProfile() {
                
                {/* Name & Stats */}
                <div className="text-center md:text-left flex-1">
-                  <h1 className="text-3xl font-black text-white mb-2">{profileData?.name || 'Unknown User'}</h1>
+                  <h1 className="text-3xl font-black text-white mb-2">{profileData?.name || 'User'}</h1>
                   <p className="text-[#64748b] text-xs uppercase tracking-widest font-bold mb-4">Project Zero Member</p>
                   
-                  {/* Stats Row */}
                   <div className="flex items-center justify-center md:justify-start gap-6">
                      <div className="flex items-center gap-2 px-3 py-1.5 bg-[#111827] rounded-lg border border-[#1f2937]">
                         <Activity size={16} className="text-green-500" />
@@ -119,13 +129,13 @@ export default function UserProfile() {
             </div>
 
             {/* The Grid */}
-            <div className="bg-[#111827] border border-[#1f2937] rounded-2xl p-6">
+            <div className="bg-[#111827] border border-[#1f2937] rounded-2xl p-4 lg:p-6 overflow-hidden">
                <YearGrid totalDays={365} activeDays={allActiveDayNumbers} onDayClick={scrollToDay} />
             </div>
           </div>
 
           {/* Timeline Stream */}
-          <div className="p-6">
+          <div className="p-4 lg:p-6">
             {loading ? (
               <div className="flex justify-center py-20"><Loader2 className="animate-spin text-indigo-500" size={40} /></div>
             ) : sortedDays.length > 0 ? (
@@ -135,7 +145,7 @@ export default function UserProfile() {
                   return (
                     <div key={dayNum} id={`day-${dayNum}`} className="relative group/day">
                       <div className="flex items-end gap-4 mb-4 border-b border-[#1f2937] pb-2">
-                        <span className="text-4xl font-black text-[#1f2937] group-hover/day:text-indigo-500/20 transition-colors">#{dayNum}</span>
+                        <span className="text-3xl lg:text-4xl font-black text-[#1f2937] group-hover/day:text-indigo-500/20 transition-colors">#{dayNum}</span>
                         <span className="text-xs font-bold text-[#64748b] uppercase tracking-widest mb-1.5">{formatDateFull(dayEntries[0].date)}</span>
                       </div>
                       <div className="grid gap-6">
@@ -143,8 +153,8 @@ export default function UserProfile() {
                           <EntryCard 
                             key={entry.id} 
                             entry={entry} 
-                            isAdmin={false} // View Only (لأنه بروفايل حد تاني)
-                            showAuthor={false} // مش محتاجين الصورة والاسم هنا لأننا في صفحته
+                            isAdmin={false} 
+                            showAuthor={false} 
                             onEdit={() => {}} 
                             onDelete={() => {}} 
                           />
@@ -163,10 +173,12 @@ export default function UserProfile() {
           </div>
         </main>
 
-        {/* --- 3. RIGHT SIDEBAR (FIXED) --- */}
         <RightSidebar />
 
       </div>
+
+      <MobileNav onOpenEditor={() => setIsEditorOpen(true)} />
+      <EditorModal isOpen={isEditorOpen} onClose={() => setIsEditorOpen(false)} onSave={handleSave} />
     </div>
   );
 }

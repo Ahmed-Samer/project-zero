@@ -1,66 +1,76 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
-import { collection, query, where, limit, getDocs, updateDoc, doc, arrayUnion, arrayRemove, getDoc } from 'firebase/firestore';
+import { collection, query, where, limit, getDocs, updateDoc, doc, arrayUnion, arrayRemove, getDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { Flame, UserPlus, Check } from 'lucide-react';
+import { Flame, UserPlus } from 'lucide-react';
 
 const RightSidebar = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [suggestedUsers, setSuggestedUsers] = useState([]);
-  const [followingIds, setFollowingIds] = useState([]); // قائمة الناس اللي أنا بتابعهم
+  const [followingIds, setFollowingIds] = useState([]);
 
-  // 1. جلب المستخدمين الحقيقيين
   useEffect(() => {
     const fetchUsers = async () => {
       if (!user) return;
-
       try {
-        // هات 5 مستخدمين مش أنا
         const q = query(collection(db, 'users'), where('uid', '!=', user.uid), limit(5));
         const snapshot = await getDocs(q);
         const users = snapshot.docs.map(doc => doc.data());
         setSuggestedUsers(users);
 
-        // هات قائمة المتابعة بتاعتي عشان أعرف أنا متابع مين
         const myDoc = await getDoc(doc(db, 'users', user.uid));
         if (myDoc.exists()) {
           setFollowingIds(myDoc.data().following || []);
         }
-      } catch (error) {
-        console.error("Error fetching suggestions:", error);
-      }
+      } catch (error) { console.error("Error fetching suggestions:", error); }
     };
-
     fetchUsers();
   }, [user]);
 
-  // 2. دالة عمل الفولو / أنفولو
+  // --- التعديل: إرسال إشعار عند المتابعة ---
   const handleFollow = async (targetUid) => {
     if (!user) return;
     const myRef = doc(db, 'users', user.uid);
+    const targetRef = doc(db, 'users', targetUid); // مرجع للشخص اللي بنتابعه عشان نضيف في الـ followers بتوعه لو حابب
+    
     const isFollowing = followingIds.includes(targetUid);
 
     try {
       if (isFollowing) {
         // Unfollow
         await updateDoc(myRef, { following: arrayRemove(targetUid) });
+        // (اختياري) تشيل نفسك من عنده
+        await updateDoc(targetRef, { followers: arrayRemove(user.uid) });
+        
         setFollowingIds(prev => prev.filter(id => id !== targetUid));
       } else {
         // Follow
         await updateDoc(myRef, { following: arrayUnion(targetUid) });
+        // (اختياري) تضيف نفسك عنده
+        await updateDoc(targetRef, { followers: arrayUnion(user.uid) });
+        
         setFollowingIds(prev => [...prev, targetUid]);
+
+        // إرسال إشعار
+        await addDoc(collection(db, 'notifications'), {
+          recipientId: targetUid,
+          senderId: user.uid,
+          senderName: user.displayName,
+          senderImage: user.photoURL,
+          type: 'follow',
+          read: false,
+          createdAt: serverTimestamp()
+        });
       }
-    } catch (error) {
-      console.error("Follow error:", error);
-    }
+    } catch (error) { console.error("Follow error:", error); }
   };
 
   return (
     <aside className="hidden lg:block w-80 sticky top-0 h-screen border-l border-[#1f2937] bg-[#0b0f19] p-6 overflow-y-auto">
       
-      {/* Trending Topics (Still Mock for now as requested) */}
+      {/* Trending Topics */}
       <div className="modern-card rounded-2xl p-4 mb-6">
         <h3 className="font-bold text-white text-lg mb-4 flex items-center gap-2">
           <Flame className="text-orange-500" size={18} /> Trending Now
@@ -77,7 +87,7 @@ const RightSidebar = () => {
         </div>
       </div>
 
-      {/* Real Who to Follow */}
+      {/* Who to Follow */}
       <div className="modern-card rounded-2xl p-4">
         <h3 className="font-bold text-white text-lg mb-4 flex items-center gap-2">
           <UserPlus className="text-indigo-500" size={18} /> Who to follow

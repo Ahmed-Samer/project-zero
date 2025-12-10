@@ -3,10 +3,13 @@ import {
   onAuthStateChanged, 
   signInWithPopup, 
   signOut,
-  updateProfile
+  updateProfile,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  sendEmailVerification
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore'; // استيراد أدوات الداتا بيز
-import { auth, googleProvider, db } from '../lib/firebase';
+import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore'; 
+import { auth, googleProvider, appleProvider, db } from '../lib/firebase';
 
 export function useAuth() {
   const [user, setUser] = useState(null);
@@ -20,20 +23,18 @@ export function useAuth() {
     return () => unsubscribe();
   }, []);
 
-  // --- حفظ بيانات المستخدم عند الدخول ---
-  const saveUserToDB = async (user) => {
+  const saveUserToDB = async (user, additionalData = {}) => {
     const userRef = doc(db, 'users', user.uid);
     const userSnap = await getDoc(userRef);
 
-    // لو المستخدم جديد (مش متسجل قبل كدا)، نسجله
     if (!userSnap.exists()) {
       await setDoc(userRef, {
         uid: user.uid,
-        displayName: user.displayName,
+        displayName: user.displayName || additionalData.name || 'User',
         email: user.email,
-        photoURL: user.photoURL,
-        followers: [], // مصفوفة المتابعين
-        following: [], // مصفوفة اللي بيتابعهم
+        photoURL: user.photoURL || null,
+        followers: [],
+        following: [],
         createdAt: serverTimestamp()
       });
     }
@@ -42,11 +43,79 @@ export function useAuth() {
   const loginWithGoogle = async () => {
     try {
       const result = await signInWithPopup(auth, googleProvider);
-      // بعد الدخول الناجح، نحفظ بياناته
       await saveUserToDB(result.user);
+      return { success: true };
     } catch (error) {
-      console.error("Login Failed:", error);
-      alert("Login failed: " + error.message);
+      console.error("Google Login Failed:", error);
+      return { success: false, error: error.message };
+    }
+  };
+
+  const loginWithApple = async () => {
+    try {
+      const result = await signInWithPopup(auth, appleProvider);
+      await saveUserToDB(result.user);
+      return { success: true };
+    } catch (error) {
+      console.error("Apple Login Failed:", error);
+      return { success: false, error: error.message };
+    }
+  };
+
+  // --- دالة التسجيل (التعديل هنا) ---
+  const signupWithEmail = async (email, password, name) => {
+    try {
+      // 1. إنشاء الحساب
+      const result = await createUserWithEmailAndPassword(auth, email, password);
+      
+      // 2. تحديث الاسم
+      if (name) {
+        await updateProfile(result.user, { displayName: name });
+      }
+      
+      // 3. حفظ في الداتا بيز
+      await saveUserToDB(result.user, { name });
+
+      // 4. إرسال الإيميل (مهم جداً السطر ده)
+      await sendEmailVerification(result.user);
+
+      // 5. خروج فوري عشان ميدخلش الداشبورد
+      await signOut(auth);
+      
+      return { success: true };
+    } catch (error) {
+      console.error("Signup Failed:", error);
+      let errorMessage = error.message;
+      if (error.code === 'auth/email-already-in-use') errorMessage = 'Email is already registered.';
+      if (error.code === 'auth/weak-password') errorMessage = 'Password should be at least 6 characters.';
+      
+      return { success: false, error: errorMessage };
+    }
+  };
+
+  // --- دالة الدخول ---
+  const loginWithEmail = async (email, password) => {
+    try {
+      const result = await signInWithEmailAndPassword(auth, email, password);
+      
+      // لو الإيميل مش مفعل، اطرده ورجع خطأ
+      if (!result.user.emailVerified) {
+        await signOut(auth);
+        return { 
+          success: false, 
+          error: "Email not verified yet. Please check your inbox and click the link." 
+        };
+      }
+      
+      return { success: true };
+    } catch (error) {
+      console.error("Email Login Failed:", error);
+      let errorMessage = "Invalid email or password.";
+      if (error.code === 'auth/user-not-found') errorMessage = "No account found with this email.";
+      if (error.code === 'auth/wrong-password') errorMessage = "Incorrect password.";
+      if (error.code === 'auth/too-many-requests') errorMessage = "Too many failed attempts. Try again later.";
+      
+      return { success: false, error: errorMessage };
     }
   };
 
@@ -62,11 +131,8 @@ export function useAuth() {
     if (!auth.currentUser) return;
     try {
       await updateProfile(auth.currentUser, { displayName: newName });
-      
-      // نحدث الاسم في الداتا بيز كمان
       const userRef = doc(db, 'users', auth.currentUser.uid);
       await setDoc(userRef, { displayName: newName }, { merge: true });
-      
       setUser({ ...auth.currentUser, displayName: newName });
       return true;
     } catch (error) {
@@ -75,5 +141,15 @@ export function useAuth() {
     }
   };
 
-  return { user, loading, loginWithGoogle, logout, updateName };
+  return { 
+    user, 
+    loading, 
+    loginWithGoogle, 
+    loginWithApple, 
+    signupWithEmail, 
+    loginWithEmail, 
+    logout, 
+    updateName 
+  };
 }
+

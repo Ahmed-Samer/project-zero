@@ -39,8 +39,8 @@ export function useJournal(user) {
     return new Date(dateInput);
   };
 
-  // شيلنا الـ category من المدخلات
-  const addEntry = async (content, date, dayNumber, quote) => {
+  // التعديل هنا: ضفنا image كباراميتر وحفظناه في الداتا
+  const addEntry = async (content, date, dayNumber, quote, image = null) => {
     if (!user) return;
 
     try {
@@ -48,8 +48,9 @@ export function useJournal(user) {
         content,
         date: parseDate(date),
         dayNumber: parseInt(dayNumber),
-        category: 'Post', // قيمة ثابتة عشان لو حبينا نرجعها بعدين
+        category: 'Post',
         quote: quote || null,
+        image: image || null, // حفظ رابط الصورة
         uid: user.uid,
         authorName: user.displayName || 'Anonymous',
         authorImage: user.photoURL || null,
@@ -63,7 +64,8 @@ export function useJournal(user) {
     }
   };
 
-  const updateEntry = async (id, content, date, dayNumber, quote) => {
+  // التعديل هنا كمان في التحديث
+  const updateEntry = async (id, content, date, dayNumber, quote, image = null) => {
     try {
       const entryRef = doc(db, 'journal_entries', id);
       await updateDoc(entryRef, {
@@ -71,6 +73,7 @@ export function useJournal(user) {
         date: parseDate(date),
         dayNumber: parseInt(dayNumber),
         quote: quote || null,
+        image: image || null, // تحديث الصورة
         updatedAt: serverTimestamp()
       });
       return true;

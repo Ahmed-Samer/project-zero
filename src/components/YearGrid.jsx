@@ -1,16 +1,32 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 
 const YearGrid = ({ totalDays = 365, activeDays, onDayClick }) => {
   const days = Array.from({ length: totalDays }, (_, i) => i + 1);
+  const scrollRef = useRef(null);
+
+  // أوتوماتيك نعمل سكرول لآخر السنة (اليمين) عشان نشوف الأيام الحالية
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollLeft = scrollRef.current.scrollWidth;
+    }
+  }, []);
 
   return (
-    <div className="pro-card p-6 rounded-xl">
+    <div className="pro-card p-4 md:p-6 rounded-xl overflow-hidden">
       <div className="flex items-center justify-between mb-4 border-b border-[#333] pb-3">
         <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Year Progress</span>
         <span className="text-xs font-mono text-orange-500 font-bold">{activeDays.length}/{totalDays}</span>
       </div>
       
-      <div className="flex flex-wrap gap-1.5 justify-start">
+      {/* هنا السحر: Scroll Container */}
+      <div 
+        ref={scrollRef}
+        className="flex flex-wrap gap-1.5 justify-start md:justify-start overflow-x-auto max-h-[140px] md:max-h-none flex-col md:flex-row content-start md:content-start pb-2 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent"
+        style={{
+            // حيلة بسيطة لعرض الـ Grid بشكل أفقي على الموبايل
+            writingMode: window.innerWidth < 768 ? 'vertical-lr' : 'horizontal-tb'
+        }}
+      >
         {days.map((dayNum) => {
           const isActive = activeDays.includes(dayNum);
           return (
@@ -20,7 +36,7 @@ const YearGrid = ({ totalDays = 365, activeDays, onDayClick }) => {
               disabled={!isActive}
               title={`Day ${dayNum}`}
               className={`
-                w-2.5 h-2.5 rounded-[2px] transition-all duration-300
+                w-2.5 h-2.5 rounded-[2px] transition-all duration-300 flex-shrink-0
                 ${isActive 
                   ? 'bg-blue-500 hover:bg-orange-500 shadow-[0_0_8px_rgba(59,130,246,0.6)] cursor-pointer scale-110' 
                   : 'bg-[#1a1a1a] hover:bg-[#252525]'

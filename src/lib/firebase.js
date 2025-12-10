@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider } from 'firebase/auth'; // ضفنا GoogleAuthProvider
+import { getAuth, GoogleAuthProvider, OAuthProvider } from 'firebase/auth'; // ضفنا OAuthProvider
 import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = typeof __firebase_config !== 'undefined' 
@@ -18,6 +18,11 @@ const firebaseConfig = typeof __firebase_config !== 'undefined'
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const googleProvider = new GoogleAuthProvider(); // جهزنا جوجل
 
-export { auth, db, googleProvider };
+// إعدادات المزودين (Providers)
+const googleProvider = new GoogleAuthProvider();
+const appleProvider = new OAuthProvider('apple.com'); // إعداد آبل
+appleProvider.addScope('email');
+appleProvider.addScope('name');
+
+export { auth, db, googleProvider, appleProvider };
