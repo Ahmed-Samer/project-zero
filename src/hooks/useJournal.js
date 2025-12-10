@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { 
-  collection, query, orderBy, onSnapshot, addDoc, deleteDoc, updateDoc, doc, serverTimestamp 
+  collection, query, where, orderBy, onSnapshot, addDoc, deleteDoc, updateDoc, doc, serverTimestamp 
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
@@ -14,7 +14,13 @@ export function useJournal(user) {
       setLoading(false);
       return;
     }
-    const q = query(collection(db, 'journal_entries'), orderBy('date', 'desc'));
+
+    const q = query(
+      collection(db, 'journal_entries'),
+      where('uid', '==', user.uid),
+      orderBy('date', 'desc')
+    );
+
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setEntries(data);
@@ -23,6 +29,7 @@ export function useJournal(user) {
       console.error("Error fetching entries:", error);
       setLoading(false);
     });
+
     return () => unsubscribe();
   }, [user]);
 
@@ -32,15 +39,20 @@ export function useJournal(user) {
     return new Date(dateInput);
   };
 
-  // تعديل: إضافة quote
-  const addEntry = async (content, date, dayNumber, category, quote) => {
+  // شيلنا الـ category من المدخلات
+  const addEntry = async (content, date, dayNumber, quote) => {
+    if (!user) return;
+
     try {
       await addDoc(collection(db, 'journal_entries'), {
         content,
         date: parseDate(date),
         dayNumber: parseInt(dayNumber),
-        category,
-        quote: quote || null, // الحقل الجديد
+        category: 'Post', // قيمة ثابتة عشان لو حبينا نرجعها بعدين
+        quote: quote || null,
+        uid: user.uid,
+        authorName: user.displayName || 'Anonymous',
+        authorImage: user.photoURL || null,
         createdAt: serverTimestamp()
       });
       return true;
@@ -51,22 +63,19 @@ export function useJournal(user) {
     }
   };
 
-  // تعديل: إضافة quote
-  const updateEntry = async (id, content, date, dayNumber, category, quote) => {
+  const updateEntry = async (id, content, date, dayNumber, quote) => {
     try {
       const entryRef = doc(db, 'journal_entries', id);
       await updateDoc(entryRef, {
         content,
         date: parseDate(date),
         dayNumber: parseInt(dayNumber),
-        category,
-        quote: quote || null, // تحديث الحقل
+        quote: quote || null,
         updatedAt: serverTimestamp()
       });
       return true;
     } catch (error) {
       console.error("Error updating entry:", error);
-      alert("Error updating: " + error.message);
       return false;
     }
   };
