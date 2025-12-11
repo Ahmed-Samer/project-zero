@@ -15,45 +15,38 @@ const RightSidebar = () => {
     const fetchUsers = async () => {
       if (!user) return;
       try {
+        // بنجيب 5 يوزرات عشوائيين (أو بترتيب معين) غير اليوزر الحالي
         const q = query(collection(db, 'users'), where('uid', '!=', user.uid), limit(5));
         const snapshot = await getDocs(q);
         const users = snapshot.docs.map(doc => doc.data());
         setSuggestedUsers(users);
 
-        const myDoc = await getDoc(doc(db, 'users', user.uid));
-        if (myDoc.exists()) {
-          setFollowingIds(myDoc.data().following || []);
+        // بنجيب قايمة المتابعين بتوعي
+        if (user.following) {
+          setFollowingIds(user.following);
         }
       } catch (error) { console.error("Error fetching suggestions:", error); }
     };
     fetchUsers();
   }, [user]);
 
-  // --- التعديل: إرسال إشعار عند المتابعة ---
   const handleFollow = async (targetUid) => {
     if (!user) return;
     const myRef = doc(db, 'users', user.uid);
-    const targetRef = doc(db, 'users', targetUid); // مرجع للشخص اللي بنتابعه عشان نضيف في الـ followers بتوعه لو حابب
+    const targetRef = doc(db, 'users', targetUid); 
     
     const isFollowing = followingIds.includes(targetUid);
 
     try {
       if (isFollowing) {
-        // Unfollow
         await updateDoc(myRef, { following: arrayRemove(targetUid) });
-        // (اختياري) تشيل نفسك من عنده
         await updateDoc(targetRef, { followers: arrayRemove(user.uid) });
-        
         setFollowingIds(prev => prev.filter(id => id !== targetUid));
       } else {
-        // Follow
         await updateDoc(myRef, { following: arrayUnion(targetUid) });
-        // (اختياري) تضيف نفسك عنده
         await updateDoc(targetRef, { followers: arrayUnion(user.uid) });
-        
         setFollowingIds(prev => [...prev, targetUid]);
 
-        // إرسال إشعار
         await addDoc(collection(db, 'notifications'), {
           recipientId: targetUid,
           senderId: user.uid,
@@ -70,7 +63,7 @@ const RightSidebar = () => {
   return (
     <aside className="hidden lg:block w-80 sticky top-0 h-screen border-l border-[#1f2937] bg-[#0b0f19] p-6 overflow-y-auto">
       
-      {/* Trending Topics */}
+      {/* Trending */}
       <div className="modern-card rounded-2xl p-4 mb-6">
         <h3 className="font-bold text-white text-lg mb-4 flex items-center gap-2">
           <Flame className="text-orange-500" size={18} /> Trending Now
@@ -132,7 +125,6 @@ const RightSidebar = () => {
         </div>
       </div>
 
-      {/* Footer */}
       <div className="mt-8 text-[10px] text-slate-600 text-center">
         &copy; 2025 Project Zero Inc. <br/> Designed for the future.
       </div>

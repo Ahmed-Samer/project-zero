@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Zap, PlusSquare, Bell, User } from 'lucide-react';
+import { Home, PlusSquare, Bell, User, Search } from 'lucide-react'; // ضفنا Search
 import { useAuth } from '../hooks/useAuth';
 
 const MobileNav = ({ onOpenEditor }) => {
@@ -10,7 +10,6 @@ const MobileNav = ({ onOpenEditor }) => {
 
   const isActive = (path) => location.pathname === path;
 
-  // تصميم الأيقونة حسب التفعيل
   const NavItem = ({ icon: Icon, path, onClick, activeColor = "text-indigo-500" }) => {
     const active = path && isActive(path);
     return (
@@ -19,7 +18,6 @@ const MobileNav = ({ onOpenEditor }) => {
         className={`flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors ${active ? activeColor : "text-slate-500 hover:text-slate-300"}`}
       >
         <Icon size={active ? 26 : 24} strokeWidth={active ? 2.5 : 2} fill={active && Icon !== PlusSquare ? "currentColor" : "none"} className={active ? "scale-110 transition-transform" : ""} />
-        {/* ممكن نضيف نقطة صغيرة تحت الأيقونة النشطة */}
         {active && <span className="w-1 h-1 rounded-full bg-current absolute bottom-2"></span>}
       </button>
     );
@@ -31,11 +29,15 @@ const MobileNav = ({ onOpenEditor }) => {
       {/* 1. Home / Feed */}
       <NavItem icon={Home} path="/feed" activeColor="text-indigo-500" />
 
-      {/* 2. Search (بدلنا الداشبورد بالبحث عشان يكون أسهل) */}
-      {/* أو ممكن نخلي الداشبورد هي الصفحة الشخصية، والبحث له زرار لوحده */}
-      <NavItem icon={Zap} path="/" activeColor="text-orange-500" />
+      {/* 2. Search - خليناها بحث بدل داشبورد عشان تكون مفيدة أكتر */}
+      <button 
+        onClick={() => { /* هنا ممكن تفتح مودال البحث أو تودي لصفحة بحث */ }}
+        className="flex flex-col items-center justify-center w-full h-full space-y-1 text-slate-500 hover:text-slate-300"
+      >
+        <Search size={24} />
+      </button>
 
-      {/* 3. Add Post (زرار مميز في النص) */}
+      {/* 3. Add Post (Main Action) */}
       <div className="relative -top-5">
         <button 
           onClick={onOpenEditor}
@@ -48,7 +50,7 @@ const MobileNav = ({ onOpenEditor }) => {
       {/* 4. Notifications */}
       <NavItem icon={Bell} path="/notifications" activeColor="text-pink-500" />
 
-      {/* 5. Profile */}
+      {/* 5. Profile - يودي لصفحة العرض */}
       <button 
         onClick={() => navigate(`/profile/${user?.uid}`)}
         className={`flex flex-col items-center justify-center w-full h-full ${isActive(`/profile/${user?.uid}`) ? "opacity-100" : "opacity-60"}`}

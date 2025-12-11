@@ -4,13 +4,13 @@ import { useAuth } from './hooks/useAuth';
 import { Loader2 } from 'lucide-react';
 import { Toaster } from 'react-hot-toast'; 
 
-// استيراد الصفحات
-import Dashboard from './pages/Dashboard';
+// الصفحات
 import Login from './pages/Login';
 import Feed from './pages/Feed';
 import UserProfile from './pages/UserProfile';
 import Notifications from './pages/Notifications'; 
-import Settings from './pages/Settings'; // استيراد الصفحة الجديدة
+import Settings from './pages/Settings';
+import Chat from './pages/Chat';
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -28,6 +28,13 @@ const ProtectedRoute = ({ children }) => {
   }
 
   return children;
+};
+
+// مكون تحويل للصفحة الشخصية
+const RedirectToProfile = () => {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  return user ? <Navigate to={`/profile/${user.uid}`} replace /> : <Navigate to="/login" replace />;
 };
 
 export default function App() {
@@ -53,14 +60,14 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
 
-        <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        {/* الصفحة الرئيسية بقت تحولك لبروفايلك مباشرة */}
+        <Route path="/" element={<ProtectedRoute><RedirectToProfile /></ProtectedRoute>} />
+        
         <Route path="/feed" element={<ProtectedRoute><Feed /></ProtectedRoute>} />
         <Route path="/profile/:uid" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
-        
         <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
-        
-        {/* المسار الجديد للإعدادات */}
         <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+        <Route path="/messages" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

@@ -16,8 +16,18 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (currentUser) {
+        // نجيب بيانات اليوزر الإضافية من الداتا بيز عشان تكون متاحة في التطبيق كله
+        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+        if (userDoc.exists()) {
+          setUser({ ...currentUser, ...userDoc.data() });
+        } else {
+          setUser(currentUser);
+        }
+      } else {
+        setUser(null);
+      }
       setLoading(false);
     });
     return () => unsubscribe();
@@ -34,9 +44,12 @@ export function useAuth() {
         email: user.email,
         photoURL: user.photoURL || null,
         bio: '',
+        birthDate: null,
+        birthDatePrivacy: 'public', // public, followers, private
+        followingPrivacy: 'public', // public, followers, private
         experience: [],
-        followers: [],
-        following: [],
+        followers: [], // مصفوفة فيها أيديهات الناس اللي متابعاني
+        following: [], // مصفوفة فيها أيديهات الناس اللي أنا متابعهم
         createdAt: serverTimestamp()
       });
     }
@@ -67,79 +80,59 @@ export function useAuth() {
   const signupWithEmail = async (email, password, name) => {
     try {
       const result = await createUserWithEmailAndPassword(auth, email, password);
-      
-      if (name) {
-        await updateProfile(result.user, { displayName: name });
-      }
-      
+      if (name) await updateProfile(result.user, { displayName: name });
       await saveUserToDB(result.user, { name });
       await sendEmailVerification(result.user);
       await signOut(auth);
-      
       return { success: true };
     } catch (error) {
-      console.error("Signup Failed:", error);
-      let errorMessage = error.message;
-      if (error.code === 'auth/email-already-in-use') errorMessage = 'Email is already registered.';
-      if (error.code === 'auth/weak-password') errorMessage = 'Password should be at least 6 characters.';
-      
-      return { success: false, error: errorMessage };
+      return { success: false, error: error.message };
     }
   };
 
   const loginWithEmail = async (email, password) => {
     try {
       const result = await signInWithEmailAndPassword(auth, email, password);
-      
       if (!result.user.emailVerified) {
         await signOut(auth);
-        return { 
-          success: false, 
-          error: "Email not verified yet. Please check your inbox and click the link." 
-        };
+        return { success: false, error: "Email not verified yet." };
       }
-      
       return { success: true };
     } catch (error) {
-      console.error("Email Login Failed:", error);
-      let errorMessage = "Invalid email or password.";
-      if (error.code === 'auth/user-not-found') errorMessage = "No account found with this email.";
-      if (error.code === 'auth/wrong-password') errorMessage = "Incorrect password.";
-      if (error.code === 'auth/too-many-requests') errorMessage = "Too many failed attempts. Try again later.";
-      
-      return { success: false, error: errorMessage };
+      return { success: false, error: error.message };
     }
   };
 
   const logout = async () => {
-    try {
-      await signOut(auth);
-    } catch (error) {
-      console.error("Logout Failed:", error);
-    }
+    try { await signOut(auth); } catch (error) { console.error(error); }
   };
 
-  // --- دالة تحديث البروفايل الجديدة ---
   const updateUserProfile = async (uid, data) => {
     if (!auth.currentUser || auth.currentUser.uid !== uid) return false;
 
     try {
-      // 1. تحديث الاسم في الـ Auth لو اتغير
+      // تحديث البيانات الأساسية في Auth لو اتغيرت
       if (data.displayName && data.displayName !== auth.currentUser.displayName) {
         await updateProfile(auth.currentUser, { displayName: data.displayName });
       }
+      if (data.photoURL && data.photoURL !== auth.currentUser.photoURL) {
+        await updateProfile(auth.currentUser, { photoURL: data.photoURL });
+      }
 
-      // 2. تحديث باقي البيانات في Firestore (الاسم، البايو، الوظائف)
+      // تحديث Firestore
       const userRef = doc(db, 'users', uid);
       await updateDoc(userRef, {
         displayName: data.displayName,
         bio: data.bio,
+        photoURL: data.photoURL, // تحديث الصورة
+        birthDate: data.birthDate, // تاريخ الميلاد
+        birthDatePrivacy: data.birthDatePrivacy, // خصوصية التاريخ
+        followingPrivacy: data.followingPrivacy, // خصوصية المتابعة
         experience: data.experience
       });
 
-      // 3. تحديث الـ State المحلي عشان التغيير يظهر فوراً
-      setUser(prev => ({ ...prev, displayName: data.displayName }));
-      
+      // تحديث الـ Local State
+      setUser(prev => ({ ...prev, ...data }));
       return true;
     } catch (error) {
       console.error("Update Profile Failed:", error);
@@ -148,13 +141,6 @@ export function useAuth() {
   };
 
   return { 
-    user, 
-    loading, 
-    loginWithGoogle, 
-    loginWithApple, 
-    signupWithEmail, 
-    loginWithEmail, 
-    logout,
-    updateUserProfile // صدرنا الدالة الجديدة
+    user, loading, loginWithGoogle, loginWithApple, signupWithEmail, loginWithEmail, logout, updateUserProfile 
   };
 }
