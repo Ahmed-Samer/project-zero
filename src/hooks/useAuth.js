@@ -8,7 +8,7 @@ import {
   signInWithEmailAndPassword,
   sendEmailVerification
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore'; 
+import { doc, setDoc, getDoc, serverTimestamp, updateDoc } from 'firebase/firestore'; 
 import { auth, googleProvider, appleProvider, db } from '../lib/firebase';
 
 export function useAuth() {
@@ -33,6 +33,8 @@ export function useAuth() {
         displayName: user.displayName || additionalData.name || 'User',
         email: user.email,
         photoURL: user.photoURL || null,
+        bio: '',
+        experience: [],
         followers: [],
         following: [],
         createdAt: serverTimestamp()
@@ -62,24 +64,16 @@ export function useAuth() {
     }
   };
 
-  // --- دالة التسجيل (التعديل هنا) ---
   const signupWithEmail = async (email, password, name) => {
     try {
-      // 1. إنشاء الحساب
       const result = await createUserWithEmailAndPassword(auth, email, password);
       
-      // 2. تحديث الاسم
       if (name) {
         await updateProfile(result.user, { displayName: name });
       }
       
-      // 3. حفظ في الداتا بيز
       await saveUserToDB(result.user, { name });
-
-      // 4. إرسال الإيميل (مهم جداً السطر ده)
       await sendEmailVerification(result.user);
-
-      // 5. خروج فوري عشان ميدخلش الداشبورد
       await signOut(auth);
       
       return { success: true };
@@ -93,12 +87,10 @@ export function useAuth() {
     }
   };
 
-  // --- دالة الدخول ---
   const loginWithEmail = async (email, password) => {
     try {
       const result = await signInWithEmailAndPassword(auth, email, password);
       
-      // لو الإيميل مش مفعل، اطرده ورجع خطأ
       if (!result.user.emailVerified) {
         await signOut(auth);
         return { 
@@ -127,16 +119,30 @@ export function useAuth() {
     }
   };
 
-  const updateName = async (newName) => {
-    if (!auth.currentUser) return;
+  // --- دالة تحديث البروفايل الجديدة ---
+  const updateUserProfile = async (uid, data) => {
+    if (!auth.currentUser || auth.currentUser.uid !== uid) return false;
+
     try {
-      await updateProfile(auth.currentUser, { displayName: newName });
-      const userRef = doc(db, 'users', auth.currentUser.uid);
-      await setDoc(userRef, { displayName: newName }, { merge: true });
-      setUser({ ...auth.currentUser, displayName: newName });
+      // 1. تحديث الاسم في الـ Auth لو اتغير
+      if (data.displayName && data.displayName !== auth.currentUser.displayName) {
+        await updateProfile(auth.currentUser, { displayName: data.displayName });
+      }
+
+      // 2. تحديث باقي البيانات في Firestore (الاسم، البايو، الوظائف)
+      const userRef = doc(db, 'users', uid);
+      await updateDoc(userRef, {
+        displayName: data.displayName,
+        bio: data.bio,
+        experience: data.experience
+      });
+
+      // 3. تحديث الـ State المحلي عشان التغيير يظهر فوراً
+      setUser(prev => ({ ...prev, displayName: data.displayName }));
+      
       return true;
     } catch (error) {
-      console.error("Update Name Failed:", error);
+      console.error("Update Profile Failed:", error);
       return false;
     }
   };
@@ -148,8 +154,7 @@ export function useAuth() {
     loginWithApple, 
     signupWithEmail, 
     loginWithEmail, 
-    logout, 
-    updateName 
+    logout,
+    updateUserProfile // صدرنا الدالة الجديدة
   };
 }
-

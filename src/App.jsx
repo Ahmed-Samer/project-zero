@@ -2,14 +2,15 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import { Loader2 } from 'lucide-react';
-import { Toaster } from 'react-hot-toast'; // استيراد التنبيهات
+import { Toaster } from 'react-hot-toast'; 
 
 // استيراد الصفحات
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import Feed from './pages/Feed';
 import UserProfile from './pages/UserProfile';
-import Notifications from './pages/Notifications'; // استيراد الصفحة الجديدة
+import Notifications from './pages/Notifications'; 
+import Settings from './pages/Settings'; // استيراد الصفحة الجديدة
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -32,7 +33,6 @@ const ProtectedRoute = ({ children }) => {
 export default function App() {
   return (
     <Router>
-      {/* إعدادات شكل التنبيهات */}
       <Toaster 
         position="bottom-right"
         toastOptions={{
@@ -57,8 +57,10 @@ export default function App() {
         <Route path="/feed" element={<ProtectedRoute><Feed /></ProtectedRoute>} />
         <Route path="/profile/:uid" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
         
-        {/* المسار الجديد */}
         <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+        
+        {/* المسار الجديد للإعدادات */}
+        <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
