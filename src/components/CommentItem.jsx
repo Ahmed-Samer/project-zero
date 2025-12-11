@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, Reply, ChevronDown, ChevronUp, Send } from 'lucide-react';
+// التعديل هنا: شيلنا ../ واحدة عشان المسار يظبط
 import { formatTime } from '../lib/utils';
 
 const CommentItem = ({ comment, allComments, user, onLike, onReply }) => {

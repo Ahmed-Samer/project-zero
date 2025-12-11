@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useJournal } from '../hooks/useJournal';
 import { getDayNumber, formatDateFull } from '../lib/utils';
+// التعديلات هنا: استيراد مباشر من components
 import Countdown from '../components/Countdown';
 import EntryCard from '../components/EntryCard';
 import YearGrid from '../components/YearGrid';
@@ -60,12 +61,11 @@ export default function Dashboard() {
   }, [entries]);
 
   const allActiveDayNumbers = useMemo(() => entries.map(e => e.dayNumber), [entries]);
-  // تصفية الأيام الفريدة لحساب عدد الأيام النشطة
   const uniqueActiveDays = [...new Set(allActiveDayNumbers)].length;
   const sortedDays = Object.keys(groupedEntries).sort((a, b) => b - a);
 
   return (
-    <div className="min-h-screen bg-[#0b0f19] text-[#e7e9ea] font-sans pb-20 lg:pb-0">
+    <div className="min-h-screen bg-[#0b0f19] text-[#e7e9ea] font-sans pb-20 lg:pb-0 overflow-x-hidden">
       
       {/* Mobile Top Header */}
       <div className="lg:hidden fixed top-0 w-full bg-[#0b0f19]/90 backdrop-blur-md border-b border-[#1f2937] z-40 px-4 h-14 flex items-center justify-center">
@@ -74,15 +74,16 @@ export default function Dashboard() {
 
       <Sidebar />
 
-      <div className="lg:ml-64 flex justify-center min-h-screen">
+      <div className="lg:ml-64 flex justify-center min-h-screen w-full">
         
-        <main className="flex-1 max-w-[700px] border-r border-[#1f2937] min-h-screen pt-14 lg:pt-0">
+        {/* Container Main */}
+        <main className="flex-1 max-w-[700px] border-r border-[#1f2937] min-h-screen pt-14 lg:pt-0 w-full min-w-0">
           
           {/* Dashboard Header Area */}
-          <div className="px-4 lg:px-6 py-6 lg:py-8 border-b border-[#1f2937] bg-[#0b0f19]">
+          <div className="px-4 lg:px-6 py-6 lg:py-8 border-b border-[#1f2937] bg-[#0b0f19] w-full">
             
-            {/* Desktop Header Content (Hidden on Mobile to use new Layout) */}
-            <div className="hidden lg:flex flex-row justify-between items-end gap-6 mb-8">
+            {/* Desktop Header Content */}
+            <div className="hidden lg:flex flex-row justify-between items-end gap-6 mb-8 w-full">
               <div>
                 <div className="flex items-center gap-2 text-indigo-400 mb-1">
                   <Radio size={14} className="animate-pulse" />
@@ -95,23 +96,23 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Mobile Header Content (Centered & Clean) */}
-            <div className="lg:hidden flex flex-col items-center text-center mb-6">
-               <div className="w-20 h-20 rounded-full p-[2px] bg-gradient-to-br from-indigo-600 to-violet-600 mb-3 shadow-lg shadow-indigo-500/20">
+            {/* Mobile Header Content */}
+            <div className="lg:hidden flex flex-col items-center text-center mb-6 w-full">
+               <div className="w-20 h-20 rounded-full p-[2px] bg-gradient-to-br from-indigo-600 to-violet-600 mb-3 shadow-lg shadow-indigo-500/20 shrink-0">
                   {user?.photoURL ? (
                      <img src={user.photoURL} alt="Profile" className="w-full h-full rounded-full object-cover bg-[#0b0f19]" />
                   ) : (
                      <div className="w-full h-full rounded-full bg-[#1f2937] flex items-center justify-center"><User size={32} className="text-slate-500" /></div>
                   )}
                </div>
-               <h2 className="text-2xl font-black text-white mb-1">{user?.displayName || 'Unknown User'}</h2>
+               <h2 className="text-2xl font-black text-white mb-1 truncate w-full">{user?.displayName || 'Unknown User'}</h2>
                <div className="flex items-center gap-2 text-indigo-400 mb-4 bg-indigo-500/10 px-3 py-1 rounded-full border border-indigo-500/20">
                   <Radio size={12} className="animate-pulse" />
                   <span className="text-[10px] font-bold uppercase tracking-widest">Active Member</span>
                </div>
 
-               {/* Mobile Stats Row (Instagram Style) */}
-               <div className="flex items-center gap-8 border-t border-b border-[#1f2937] py-3 px-6">
+               {/* Mobile Stats Row */}
+               <div className="flex items-center gap-8 border-t border-b border-[#1f2937] py-3 px-6 w-full justify-center">
                   <div className="text-center">
                      <span className="block text-xl font-black text-white">{entries.length}</span>
                      <span className="text-[10px] text-slate-500 uppercase font-bold">Signals</span>
@@ -125,14 +126,14 @@ export default function Dashboard() {
             </div>
 
             {/* Grids & Desktop Stats */}
-            <div className="grid grid-cols-1 gap-6">
-               {/* Year Grid: Transparent on Mobile, Card on Desktop */}
-               <div className="bg-transparent lg:bg-[#111827] lg:border border-[#1f2937] rounded-2xl p-0 lg:p-6 overflow-hidden">
+            <div className="grid grid-cols-1 gap-6 w-full">
+               {/* Year Grid */}
+               <div className="bg-transparent lg:bg-[#111827] lg:border border-[#1f2937] rounded-2xl p-0 lg:p-6 overflow-hidden w-full">
                   <YearGrid totalDays={365} activeDays={allActiveDayNumbers} onDayClick={scrollToDay} />
                </div>
                
-               {/* Desktop Stats Box (Hidden on Mobile because we showed it above) */}
-               <div className="hidden lg:flex gap-4 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-slate-700">
+               {/* Desktop Stats Box */}
+               <div className="hidden lg:flex gap-4 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-slate-700 w-full">
                   <div className="flex-1 bg-[#111827] border border-[#1f2937] rounded-xl p-4 flex items-center gap-4 min-w-[200px]">
                       <div className="p-3 bg-indigo-500/10 rounded-lg text-indigo-400"><Activity size={24} /></div>
                       <div>
@@ -151,20 +152,20 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="p-4 lg:p-6">
+          <div className="p-4 lg:p-6 w-full">
             {loading ? (
               <div className="flex justify-center py-20"><Loader2 className="animate-spin text-indigo-500" size={40} /></div>
             ) : sortedDays.length > 0 ? (
-              <div className="space-y-8">
+              <div className="space-y-8 w-full">
                 {sortedDays.map((dayNum) => {
                   const dayEntries = groupedEntries[dayNum];
                   return (
-                    <div key={dayNum} id={`day-${dayNum}`} className="relative group/day">
+                    <div key={dayNum} id={`day-${dayNum}`} className="relative group/day w-full">
                       <div className="flex items-end gap-4 mb-4 border-b border-[#1f2937] pb-2">
                         <span className="text-3xl lg:text-4xl font-black text-[#1f2937] group-hover/day:text-indigo-500/20 transition-colors">#{dayNum}</span>
                         <span className="text-xs font-bold text-[#64748b] uppercase tracking-widest mb-1.5">{formatDateFull(dayEntries[0].date)}</span>
                       </div>
-                      <div className="grid gap-6">
+                      <div className="grid gap-6 w-full">
                         {dayEntries.map(entry => (
                           <EntryCard 
                             key={entry.id} 

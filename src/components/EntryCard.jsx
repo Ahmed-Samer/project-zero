@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useInteraction } from '../hooks/useInteraction';
-import CommentItem from './CommentItem';
-import ImageModal from './ImageModal'; // استيراد المودال الجديد
+// التعديل هنا: شيلنا ui/ وبقينا نستدعي من نفس الفولدر
+import CommentItem from './CommentItem'; 
+import ImageModal from './ImageModal'; 
 import { Edit2, Trash2, MessageSquare, Heart, Share2, Send, MoreHorizontal } from 'lucide-react';
 import { formatTime } from '../lib/utils';
 import ReactMarkdown from 'react-markdown';
@@ -16,7 +17,6 @@ const EntryCard = ({ entry, isOwnPost, onEdit, onDelete, showAuthor = false }) =
   const [showComments, setShowComments] = useState(false);
   const [newComment, setNewComment] = useState('');
   
-  // State عشان نفتح الصورة الكبيرة
   const [isImageOpen, setIsImageOpen] = useState(false);
 
   const MAX_LENGTH = 300;
@@ -34,7 +34,7 @@ const EntryCard = ({ entry, isOwnPost, onEdit, onDelete, showAuthor = false }) =
 
   return (
     <>
-      <div className="pro-card rounded-2xl mb-4 relative overflow-hidden group">
+      <div className="pro-card rounded-2xl mb-4 relative overflow-hidden group w-full max-w-full">
         
         {/* Header */}
         {showAuthor ? (
@@ -74,22 +74,21 @@ const EntryCard = ({ entry, isOwnPost, onEdit, onDelete, showAuthor = false }) =
         )}
 
         {/* Content Body */}
-        <div className="px-4 pb-2">
+        <div className="px-4 pb-2 w-full">
           {entry.quote && (
             <div className="mb-4 pl-4 border-l-4 border-[#1d9bf0] py-1">
-              <p className="text-lg font-serif italic text-[#e7e9ea] leading-relaxed">"{entry.quote}"</p>
+              <p className="text-lg font-serif italic text-[#e7e9ea] leading-relaxed break-words">"{entry.quote}"</p>
             </div>
           )}
           
-          <div className="prose prose-invert prose-lg prose-p:text-[#e7e9ea] prose-p:font-normal prose-a:text-[#1d9bf0] max-w-none leading-relaxed">
+          <div className="prose prose-invert prose-lg prose-p:text-[#e7e9ea] prose-p:font-normal prose-a:text-[#1d9bf0] max-w-none leading-relaxed w-full break-words break-all overflow-hidden">
             <ReactMarkdown>{displayContent}</ReactMarkdown>
           </div>
 
-          {/* --- عرض الصورة --- */}
           {entry.image && (
             <div 
               className="mt-3 rounded-2xl overflow-hidden border border-[#2f3336] cursor-pointer hover:opacity-95 transition-opacity"
-              onClick={() => setIsImageOpen(true)} // افتح المودال عند الضغط
+              onClick={() => setIsImageOpen(true)}
             >
               <img src={entry.image} alt="Post content" className="w-full h-auto object-cover max-h-[500px]" />
             </div>
@@ -174,7 +173,6 @@ const EntryCard = ({ entry, isOwnPost, onEdit, onDelete, showAuthor = false }) =
         )}
       </div>
 
-      {/* استدعاء المودال هنا */}
       <ImageModal 
         isOpen={isImageOpen} 
         onClose={() => setIsImageOpen(false)} 
