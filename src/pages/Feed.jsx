@@ -8,8 +8,9 @@ import Sidebar from '../components/Sidebar';
 import RightSidebar from '../components/RightSidebar'; 
 import EditorModal from '../components/EditorModal'; 
 import MobileNav from '../components/MobileNav'; 
-import { Link } from 'react-router-dom'; // ضفنا Link
-import { Loader2, Sparkles, Send, Mail } from 'lucide-react'; // ضفنا Mail
+import SearchModal from '../components/SearchModal'; // استيراد مودال البحث
+import { Link } from 'react-router-dom';
+import { Loader2, Sparkles, Send, Mail } from 'lucide-react';
 
 const PROJECT_START_DATE = new Date();
 
@@ -18,6 +19,7 @@ export default function Feed() {
   const { user } = useAuth();
   const { addEntry } = useJournal(user); 
   const [isEditorOpen, setIsEditorOpen] = useState(false); 
+  const [isSearchOpen, setIsSearchOpen] = useState(false); // حالة البحث
 
   const handleSave = async (data) => {
     const now = new Date();
@@ -31,9 +33,11 @@ export default function Feed() {
       {/* Mobile Top Header */}
       <div className="lg:hidden fixed top-0 w-full bg-[#0b0f19]/90 backdrop-blur-md border-b border-[#1f2937] z-40 px-4 h-14 flex items-center justify-between">
         <div className="w-8"></div>
-        <span className="font-bold text-lg tracking-tight">PROJECT <span className="text-indigo-500">ZERO</span></span>
-        <Link to="/messages" className="text-slate-400 hover:text-white transition-colors">
+        <Link to="/feed" className="font-bold text-lg tracking-tight">PROJECT <span className="text-indigo-500">ZERO</span></Link>
+        <Link to="/messages" className="text-slate-400 hover:text-white transition-colors relative">
           <Mail size={22} />
+          {/* العلامة الزرقاء الثابتة للتنبيه */}
+          <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-blue-500 rounded-full border-2 border-[#0b0f19]"></span>
         </Link>
       </div>
 
@@ -88,8 +92,15 @@ export default function Feed() {
         
       </div>
 
-      <MobileNav onOpenEditor={() => setIsEditorOpen(true)} />
+      {/* مررنا دالة فتح البحث للناف بار */}
+      <MobileNav 
+        onOpenEditor={() => setIsEditorOpen(true)} 
+        onSearch={() => setIsSearchOpen(true)}
+      />
+
+      {/* المودالز */}
       <EditorModal isOpen={isEditorOpen} onClose={() => setIsEditorOpen(false)} onSave={handleSave} />
+      <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
     </div>
   );
 }

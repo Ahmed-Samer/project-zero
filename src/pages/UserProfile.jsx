@@ -6,13 +6,14 @@ import { useAuth } from '../hooks/useAuth';
 import { useJournal } from '../hooks/useJournal';
 import { formatDateFull, getDayNumber } from '../lib/utils';
 import EntryCard from '../components/EntryCard';
-import YearGrid from '../components/YearGrid'; // تم التصحيح: شيلنا ui/
+import YearGrid from '../components/YearGrid';
 import Sidebar from '../components/Sidebar';
 import RightSidebar from '../components/RightSidebar';
 import MobileNav from '../components/MobileNav';
 import EditorModal from '../components/EditorModal';
 import FollowListModal from '../components/FollowListModal';
-import { Loader2, Layers, User, Activity, Calendar, Settings, Briefcase, Mail, UserPlus, UserCheck, MapPin, Users, Lock, Gift } from 'lucide-react';
+import SearchModal from '../components/SearchModal'; // استيراد البحث
+import { Loader2, Layers, User, Activity, Calendar, Settings, Briefcase, Mail, UserPlus, UserCheck, Lock, Gift, Send } from 'lucide-react'; // ضفنا Send
 
 const PROJECT_START_DATE = new Date();
 
@@ -30,6 +31,7 @@ export default function UserProfile() {
   
   const { addEntry } = useJournal(user);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false); // حالة البحث
 
   const isMyProfile = user && user.uid === uid;
 
@@ -163,13 +165,14 @@ export default function UserProfile() {
   return (
     <div className="min-h-screen bg-[#0b0f19] text-[#e7e9ea] font-sans pb-20 lg:pb-0 overflow-x-hidden">
       
-      {/* Mobile Top Header - Updated with Messages Icon */}
+      {/* Mobile Top Header */}
       <div className="lg:hidden fixed top-0 w-full bg-[#0b0f19]/90 backdrop-blur-md border-b border-[#1f2937] z-40 px-4 h-14 flex items-center justify-between">
-        <div className="w-8"></div> {/* Spacer for centering */}
-        <span className="font-bold text-lg tracking-tight">PROJECT <span className="text-indigo-500">ZERO</span></span>
+        <div className="w-8"></div>
+        <Link to="/feed" className="font-bold text-lg tracking-tight">PROJECT <span className="text-indigo-500">ZERO</span></Link>
         <Link to="/messages" className="text-slate-400 hover:text-white transition-colors relative">
           <Mail size={22} />
-          {/* ممكن هنا نضيف نقطة حمراء لو فيه رسايل جديدة مستقبلاً */}
+          {/* العلامة الزرقاء */}
+          <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-blue-500 rounded-full border-2 border-[#0b0f19]"></span>
         </Link>
       </div>
 
@@ -182,14 +185,13 @@ export default function UserProfile() {
             
             <div className="flex flex-col items-center md:items-start md:flex-row gap-6 mb-6 w-full relative">
                
-               {/* Actions Buttons */}
                <div className="absolute top-0 right-0 flex gap-2">
                  {isMyProfile ? (
                    <Link 
                      to="/settings"
                      className="px-4 py-2 bg-[#1a1a1a] hover:bg-[#252525] rounded-full border border-[#333] text-xs font-bold text-white transition-colors flex items-center gap-2"
                    >
-                     <Settings size={14} /> Edit Profile
+                     <Settings size={14} /> Edit
                    </Link>
                  ) : (
                    <>
@@ -206,7 +208,6 @@ export default function UserProfile() {
                  )}
                </div>
 
-               {/* Profile Image */}
                <div className="w-24 h-24 rounded-full p-[3px] bg-gradient-to-br from-indigo-600 to-violet-600 shadow-2xl shadow-indigo-500/20 shrink-0">
                   <img 
                     src={getProfileImage(profileData?.photoURL)} 
@@ -219,7 +220,6 @@ export default function UserProfile() {
                <div className="text-center md:text-left flex-1 min-w-0 w-full mt-2 md:mt-0">
                   <h1 className="text-2xl md:text-3xl font-black text-white mb-1 truncate">{profileData?.displayName || 'Unknown User'}</h1>
                   
-                  {/* Followers / Following Counts */}
                   <div className="flex items-center justify-center md:justify-start gap-6 text-sm text-slate-400 mb-3 font-medium">
                     <button onClick={() => openFollowList('followers')} className="flex gap-1 hover:text-white transition-colors">
                       <strong className="text-white">{profileData?.followers?.length || 0}</strong> Followers
@@ -250,6 +250,16 @@ export default function UserProfile() {
                       </div>
                     )}
                   </div>
+
+                  {/* زرار النشر لصاحب البروفايل */}
+                  {isMyProfile && (
+                    <button 
+                      onClick={() => setIsEditorOpen(true)}
+                      className="w-full md:w-auto mb-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl px-4 py-2 font-bold transition-all shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2"
+                    >
+                      <Send size={16} /> <span>Broadcast New Signal</span>
+                    </button>
+                  )}
 
                   <div className="flex items-center justify-center md:justify-start gap-4 flex-wrap">
                      <div className="flex items-center gap-2 px-3 py-1.5 bg-[#111827] rounded-lg border border-[#1f2937]">
@@ -329,8 +339,13 @@ export default function UserProfile() {
         <RightSidebar />
       </div>
 
-      <MobileNav onOpenEditor={() => setIsEditorOpen(true)} />
+      <MobileNav 
+        onOpenEditor={() => setIsEditorOpen(true)} 
+        onSearch={() => setIsSearchOpen(true)} // تفعيل البحث
+      />
+      
       <EditorModal isOpen={isEditorOpen} onClose={() => setIsEditorOpen(false)} onSave={handleSave} />
+      <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
       
       <FollowListModal 
         isOpen={followModalOpen} 

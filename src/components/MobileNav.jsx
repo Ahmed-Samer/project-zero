@@ -1,23 +1,30 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, PlusSquare, Bell, User, Search } from 'lucide-react'; // ضفنا Search
+import { Home, PlusSquare, Bell, User, Search } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
-const MobileNav = ({ onOpenEditor }) => {
+const MobileNav = ({ onOpenEditor, onSearch }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
 
   const isActive = (path) => location.pathname === path;
 
-  const NavItem = ({ icon: Icon, path, onClick, activeColor = "text-indigo-500" }) => {
+  // مكون الأيقونة مع إمكانية إضافة "نقطة تنبيه"
+  const NavItem = ({ icon: Icon, path, onClick, activeColor = "text-indigo-500", hasNotification = false }) => {
     const active = path && isActive(path);
     return (
       <button 
         onClick={onClick || (() => navigate(path))}
-        className={`flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors ${active ? activeColor : "text-slate-500 hover:text-slate-300"}`}
+        className={`relative flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors ${active ? activeColor : "text-slate-500 hover:text-slate-300"}`}
       >
         <Icon size={active ? 26 : 24} strokeWidth={active ? 2.5 : 2} fill={active && Icon !== PlusSquare ? "currentColor" : "none"} className={active ? "scale-110 transition-transform" : ""} />
+        
+        {/* النقطة الزرقاء (أو أي لون) للتنبيه */}
+        {hasNotification && (
+          <span className="absolute top-3 right-6 w-2.5 h-2.5 bg-blue-500 rounded-full border-2 border-[#0b0f19]"></span>
+        )}
+        
         {active && <span className="w-1 h-1 rounded-full bg-current absolute bottom-2"></span>}
       </button>
     );
@@ -26,18 +33,13 @@ const MobileNav = ({ onOpenEditor }) => {
   return (
     <div className="lg:hidden fixed bottom-0 left-0 w-full h-16 bg-[#0b0f19]/95 backdrop-blur-xl border-t border-[#1f2937] flex items-center justify-around px-2 z-50 pb-safe">
       
-      {/* 1. Home / Feed */}
+      {/* 1. Home */}
       <NavItem icon={Home} path="/feed" activeColor="text-indigo-500" />
 
-      {/* 2. Search - خليناها بحث بدل داشبورد عشان تكون مفيدة أكتر */}
-      <button 
-        onClick={() => { /* هنا ممكن تفتح مودال البحث أو تودي لصفحة بحث */ }}
-        className="flex flex-col items-center justify-center w-full h-full space-y-1 text-slate-500 hover:text-slate-300"
-      >
-        <Search size={24} />
-      </button>
+      {/* 2. Search - دلوقتي مربوط بـ onSearch */}
+      <NavItem icon={Search} onClick={onSearch} activeColor="text-orange-500" />
 
-      {/* 3. Add Post (Main Action) */}
+      {/* 3. Add Post */}
       <div className="relative -top-5">
         <button 
           onClick={onOpenEditor}
@@ -50,7 +52,7 @@ const MobileNav = ({ onOpenEditor }) => {
       {/* 4. Notifications */}
       <NavItem icon={Bell} path="/notifications" activeColor="text-pink-500" />
 
-      {/* 5. Profile - يودي لصفحة العرض */}
+      {/* 5. Profile */}
       <button 
         onClick={() => navigate(`/profile/${user?.uid}`)}
         className={`flex flex-col items-center justify-center w-full h-full ${isActive(`/profile/${user?.uid}`) ? "opacity-100" : "opacity-60"}`}
