@@ -37,19 +37,24 @@ export function useAuth() {
     const userRef = doc(db, 'users', user.uid);
     const userSnap = await getDoc(userRef);
 
+    // --- هنا الحل لمشكلة الاسم المجهول ---
+    // لو مفيش اسم، بنشتق اسم من الإيميل
+    const fallbackName = user.email ? user.email.split('@')[0] : 'User';
+    const finalName = user.displayName || additionalData.name || fallbackName;
+
     if (!userSnap.exists()) {
       await setDoc(userRef, {
         uid: user.uid,
-        displayName: user.displayName || additionalData.name || 'User',
+        displayName: finalName, // مستحيل يكون فاضي دلوقتي
         email: user.email,
         photoURL: user.photoURL || null,
         bio: '',
         birthDate: null,
-        birthDatePrivacy: 'public', // public, followers, private
-        followingPrivacy: 'public', // public, followers, private
+        birthDatePrivacy: 'public', 
+        followingPrivacy: 'public', 
         experience: [],
-        followers: [], // مصفوفة فيها أيديهات الناس اللي متابعاني
-        following: [], // مصفوفة فيها أيديهات الناس اللي أنا متابعهم
+        followers: [], 
+        following: [], 
         createdAt: serverTimestamp()
       });
     }
@@ -80,10 +85,20 @@ export function useAuth() {
   const signupWithEmail = async (email, password, name) => {
     try {
       const result = await createUserWithEmailAndPassword(auth, email, password);
-      if (name) await updateProfile(result.user, { displayName: name });
-      await saveUserToDB(result.user, { name });
+      
+      // ضمان وجود اسم حتى لو المستخدم مدخلش اسم (رغم إن الفورم بتجبره)
+      const finalName = name || email.split('@')[0];
+
+      if (finalName) {
+        await updateProfile(result.user, { displayName: finalName });
+      }
+      
+      await saveUserToDB(result.user, { name: finalName });
       await sendEmailVerification(result.user);
+      
+      // نخرجه فوراً عشان ميقدرش يدخل غير لما يفعل
       await signOut(auth);
+      
       return { success: true };
     } catch (error) {
       return { success: false, error: error.message };
@@ -93,10 +108,13 @@ export function useAuth() {
   const loginWithEmail = async (email, password) => {
     try {
       const result = await signInWithEmailAndPassword(auth, email, password);
+      
+      // التحقق من تفعيل الإيميل
       if (!result.user.emailVerified) {
         await signOut(auth);
-        return { success: false, error: "Email not verified yet." };
+        return { success: false, error: "Email not verified yet. Please check your inbox." };
       }
+      
       return { success: true };
     } catch (error) {
       return { success: false, error: error.message };
@@ -111,7 +129,6 @@ export function useAuth() {
     if (!auth.currentUser || auth.currentUser.uid !== uid) return false;
 
     try {
-      // تحديث البيانات الأساسية في Auth لو اتغيرت
       if (data.displayName && data.displayName !== auth.currentUser.displayName) {
         await updateProfile(auth.currentUser, { displayName: data.displayName });
       }
@@ -119,19 +136,17 @@ export function useAuth() {
         await updateProfile(auth.currentUser, { photoURL: data.photoURL });
       }
 
-      // تحديث Firestore
       const userRef = doc(db, 'users', uid);
       await updateDoc(userRef, {
         displayName: data.displayName,
         bio: data.bio,
-        photoURL: data.photoURL, // تحديث الصورة
-        birthDate: data.birthDate, // تاريخ الميلاد
-        birthDatePrivacy: data.birthDatePrivacy, // خصوصية التاريخ
-        followingPrivacy: data.followingPrivacy, // خصوصية المتابعة
+        photoURL: data.photoURL,
+        birthDate: data.birthDate,
+        birthDatePrivacy: data.birthDatePrivacy,
+        followingPrivacy: data.followingPrivacy,
         experience: data.experience
       });
 
-      // تحديث الـ Local State
       setUser(prev => ({ ...prev, ...data }));
       return true;
     } catch (error) {
